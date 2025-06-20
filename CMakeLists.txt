@@ -56,19 +56,19 @@ target_include_directories(monome_static PUBLIC
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_link_libraries(monome_static PRIVATE ${libmonome_libs})
 
-add_library(monome SHARED ${libmonome_sources})
-target_compile_definitions(monome PRIVATE EMBED_PROTOS)
-target_include_directories(monome PRIVATE src/private)
-target_include_directories(monome PUBLIC
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/public>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_link_libraries(monome PRIVATE ${libmonome_libs})
+# add_library(monome SHARED ${libmonome_sources})
+# target_compile_definitions(monome PRIVATE EMBED_PROTOS)
+# target_include_directories(monome PRIVATE src/private)
+# target_include_directories(monome PUBLIC
+#       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/public>
+#       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+# target_link_libraries(monome PRIVATE ${libmonome_libs})
 
-install(TARGETS monome_static monome EXPORT libmonomeConfig
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(EXPORT libmonomeConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libmonome NAMESPACE libmonome::)
-install(DIRECTORY public/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# install(TARGETS monome_static EXPORT libmonomeConfig
+#     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+# install(EXPORT libmonomeConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libmonome NAMESPACE libmonome::)
+# install(DIRECTORY public/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # --------------------------------------------------------------------
 # cython extension
@@ -79,42 +79,40 @@ find_package(
   REQUIRED)
 
 add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/pymonome/monome.c"
-  MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/src/pymonome/monome.pyx"
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/monome.c"
+  MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/src/monome.pyx"
   VERBATIM
   COMMAND
     Python::Interpreter -m cython
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/pymonome/monome.pyx" --output-file
-    "${CMAKE_CURRENT_BINARY_DIR}/src/pymonome/monome.c")
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/monome.pyx" --output-file
+    "${CMAKE_CURRENT_BINARY_DIR}/src/monome.c")
 
 python_add_library(
-    pymonome
+    monome
     MODULE
-    "${CMAKE_CURRENT_BINARY_DIR}/src/pymonome/monome.c"
+    "${CMAKE_CURRENT_BINARY_DIR}/src/monome.c"
     WITH_SOABI
 )
 
 target_include_directories(
-    pymonome
+    monome
     PRIVATE
     src/private
 )
 
 target_include_directories(
-    pymonome
+    monome
     PUBLIC
     public
 )
 
 target_link_libraries(
-    pymonome
+    monome
     PUBLIC
     ${CMAKE_BINARY_DIR}/libmonome.a
 )
 
-
-install(TARGETS pymonome DESTINATION pymonome/)
-
+install(TARGETS monome DESTINATION ./)
 
 
 
