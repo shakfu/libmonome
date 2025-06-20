@@ -1,10 +1,16 @@
-# waf stuff
-.lock-waf*
-.waf*
-
-# build stuff
-build/
-
 # temporary stuff
 *.swp
 *~
+
+.DS_Store
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv

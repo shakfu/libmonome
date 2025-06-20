@@ -1,0 +1,20 @@
+[project]
+name = "pymonome"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "shakfu", email = "shakfu@example.com" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.scikit-build]
+ninja.make-fallback = false
+
+[build-system]
+build-backend = "scikit_build_core.build"
+requires = [
+    "scikit-build-core",
+    "cython>=3.0.0"
+]

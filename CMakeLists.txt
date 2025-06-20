@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.29)
 
 project(libmonome VERSION 1.4.8)
 
@@ -69,3 +69,52 @@ install(TARGETS monome_static monome EXPORT libmonomeConfig
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(EXPORT libmonomeConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libmonome NAMESPACE libmonome::)
 install(DIRECTORY public/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# --------------------------------------------------------------------
+# cython extension
+
+find_package(
+  Python
+  COMPONENTS Interpreter Development.Module
+  REQUIRED)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/src/pymonome/monome.c"
+  MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/src/pymonome/monome.pyx"
+  VERBATIM
+  COMMAND
+    Python::Interpreter -m cython
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/pymonome/monome.pyx" --output-file
+    "${CMAKE_CURRENT_BINARY_DIR}/src/pymonome/monome.c")
+
+python_add_library(
+    pymonome
+    MODULE
+    "${CMAKE_CURRENT_BINARY_DIR}/src/pymonome/monome.c"
+    WITH_SOABI
+)
+
+target_include_directories(
+    pymonome
+    PRIVATE
+    src/private
+)
+
+target_include_directories(
+    pymonome
+    PUBLIC
+    public
+)
+
+target_link_libraries(
+    pymonome
+    PUBLIC
+    ${CMAKE_BINARY_DIR}/libmonome.a
+)
+
+
+install(TARGETS pymonome DESTINATION pymonome/)
+
+
+
+

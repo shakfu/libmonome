@@ -1,5 +1,16 @@
-libmonome:
+# libmonome:
 
+
+## Note on this WIP fork
+
+changes
+
+- Convert to `uv` + `scikit-build-core`
+
+- Drop waf
+
+
+## Original README
     libmonome is a library for easy interaction with monome devices. It
     currently runs on Linux (on which it is primarily developed), OpenBSD, and
     Darwin/OS X.

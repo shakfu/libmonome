@@ -263,7 +263,7 @@ cdef MonomeEvent event_from_event_t(const_monome_event_t *e, object monome=None)
 
 	# XXX: handle other event types
 
-cdef void handler_thunk(const_monome_event_t *event, void *data):
+cdef void handler_thunk(const_monome_event_t *event, void *data) noexcept:
 	ev_wrapper = event_from_event_t(event, (<Monome> data))
 	(<Monome> data).handlers[event.event_type](ev_wrapper)
 
