@@ -6,6 +6,7 @@
 
 # build stuff
 build/
+dist/
 
 # temporary stuff
 *.swp

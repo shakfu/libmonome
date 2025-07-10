@@ -1,8 +1,10 @@
-cmake_minimum_required(VERSION 3.27)
+cmake_minimum_required(VERSION 3.29)
 
 project(libmonome VERSION 1.4.8)
 
 set(CMAKE_C_STANDARD 17)
+
+option(BULD_PYTHON_EXTENSION "")
 
 include(GNUInstallDirs)
 
@@ -56,16 +58,65 @@ target_include_directories(monome_static PUBLIC
       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_link_libraries(monome_static PRIVATE ${libmonome_libs})
 
-add_library(monome SHARED ${libmonome_sources})
-target_compile_definitions(monome PRIVATE EMBED_PROTOS)
-target_include_directories(monome PRIVATE src/private)
-target_include_directories(monome PUBLIC
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/public>
-      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-target_link_libraries(monome PRIVATE ${libmonome_libs})
+# add_library(monome SHARED ${libmonome_sources})
+# target_compile_definitions(monome PRIVATE EMBED_PROTOS)
+# target_include_directories(monome PRIVATE src/private)
+# target_include_directories(monome PUBLIC
+#       $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/public>
+#       $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+# target_link_libraries(monome PRIVATE ${libmonome_libs})
 
-install(TARGETS monome_static monome EXPORT libmonomeConfig
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(EXPORT libmonomeConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libmonome NAMESPACE libmonome::)
-install(DIRECTORY public/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# install(TARGETS monome_static EXPORT libmonomeConfig
+#     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+#     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+# install(EXPORT libmonomeConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libmonome NAMESPACE libmonome::)
+# install(DIRECTORY public/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# --------------------------------------------------------------------
+# cython extension
+
+find_package(
+    Python
+    COMPONENTS Interpreter Development.Module
+    REQUIRED)
+
+add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/monome.c"
+    MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/src/monome.pyx"
+    VERBATIM
+    COMMAND
+        Python::Interpreter -m cython
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/monome.pyx" --output-file
+        "${CMAKE_CURRENT_BINARY_DIR}/monome.c")
+
+python_add_library(
+    pymonome
+    MODULE
+    "${CMAKE_CURRENT_BINARY_DIR}/monome.c"
+    WITH_SOABI
+)
+
+target_include_directories(
+    pymonome
+    PRIVATE
+    src/private
+)
+
+target_include_directories(
+    pymonome
+    PUBLIC
+    public
+)
+
+target_link_libraries(
+    pymonome
+    PUBLIC
+    ${CMAKE_BINARY_DIR}/libmonome.a
+)
+
+set_target_properties(pymonome PROPERTIES OUTPUT_NAME "monome")
+
+install(TARGETS pymonome DESTINATION ./)
+
+
+
