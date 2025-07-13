@@ -70,10 +70,8 @@ cdef extern from "monome.h":
 	void monome_set_rotation(monome_t *monome, monome_rotate_t cable)
 	monome_rotate_t monome_get_rotation(monome_t *monome)
 
-	# more const hackery
-	ctypedef char * const_char_p "const char *"
-	const_char_p monome_get_serial(monome_t *monome)
-	const_char_p monome_get_devpath(monome_t *monome)
+	const char * monome_get_serial(monome_t *monome)
+	const char * monome_get_devpath(monome_t *monome)
 	int monome_get_rows(monome_t *monome)
 	int monome_get_cols(monome_t *monome)
 
@@ -106,27 +104,46 @@ cdef extern from "monome.h":
 							  unsigned int start, unsigned int end,
 							  unsigned int level)
 
-all = [
-	# constants
-	# XXX: should these be members of the class?
 
-	"MODE_NORMAL",
-	"MODE_TEST",
-	"MODE_SHUTDOWN",
-	"CABLE_LEFT",
-	"CABLE_BOTTOM",
-	"CABLE_RIGHT",
-	"CABLE_TOP",
 
-	# classes
 
-	"MonomeEvent",
-	"MonomeGridEvent",
 
-	"Monome"]
 
-BUTTON_UP, BUTTON_DOWN, ENCODER_DELTA, ENCODER_KEY_UP, ENCODER_KEY_DOWN, TILT = range(6)
-CABLE_LEFT, CABLE_BOTTOM, CABLE_RIGHT, CABLE_TOP = range(4)
+# __all__ = [
+# 	# constants
+# 	# XXX: should these be members of the class?
+
+# 	"MODE_NORMAL",
+# 	"MODE_TEST",
+# 	"MODE_SHUTDOWN",
+# 	"CABLE_LEFT",
+# 	"CABLE_BOTTOM",
+# 	"CABLE_RIGHT",
+# 	"CABLE_TOP",
+
+# 	# classes
+
+# 	"MonomeEvent",
+# 	"MonomeGridEvent",
+
+# 	"Monome"]
+
+version = "0.0.2"
+
+
+cpdef enum:
+	BUTTON_UP
+	BUTTON_DOWN
+	ENCODER_DELTA
+	ENCODER_KEY_UP
+	ENCODER_KEY_DOWN
+	TILT
+
+cpdef enum:
+	CABLE_LEFT
+	CABLE_BOTTOM
+	CABLE_RIGHT
+	CABLE_TOP
 
 MODE_NORMAL = 0
 MODE_TEST = 1
@@ -164,7 +181,7 @@ def _bitmap_data(data):
 			raise TypeError("'%s' object is neither iterable nor integer." % type(data).__name__)
 
 
-cdef class MonomeEvent(object):
+cdef class MonomeEvent:
 	cdef object monome
 
 cdef class MonomeGridEvent(MonomeEvent):
@@ -276,11 +293,11 @@ def check_level(level):
 
 	return level
 
-cdef class Monome(object):
+cdef class Monome:
 	cdef monome_t *monome
 
-	cdef unicode serial
-	cdef unicode devpath
+	cdef str serial
+	cdef str devpath
 	cdef int fd
 	cdef list handlers
 
@@ -296,28 +313,27 @@ cdef class Monome(object):
 		180: ROTATE_180,
 		270: ROTATE_270}
 
-	def __init__(self, device, port=None, clear=True):
-		cdef char *portstr
-		cdef const_char_p ser
+	def __cinit__(self):
+		self.monome = NULL
 
+	def __init__(self, str device, int port = 0, bint clear = True):
 		if device[:3] == "osc" and not port:
 			raise TypeError("OSC protocol requires a server port.")
 
 		if port:
-			port = str(port)
-			portstr = port
-
-			self.monome = monome_open(device, portstr)
+			print("have port", port)
+			self.monome = monome_open(device.encode(), bytes(port))
 		else:
-			self.monome = monome_open(device)
+			print("have device")
+			self.monome = monome_open(device.encode())
 
-		if not self.monome:
+		if self.monome is NULL:
 			raise IOError("Could not open Monome")
 
-		ser = monome_get_serial(self.monome)
+		cdef const char * ser = monome_get_serial(self.monome)
 
-		self.serial = str(ser) if ser else None
-		self.devpath = str(monome_get_devpath(self.monome))
+		self.serial = ser.encode() if ser else None
+		self.devpath = monome_get_devpath(self.monome).encode()
 		self.fd = monome_get_fd(self.monome)
 		self.handlers = [None, None, None]
 
@@ -325,7 +341,7 @@ cdef class Monome(object):
 			self.led_all(0)
 
 	def __dealloc__(self):
-		if self.monome:
+		if self.monome is not NULL:
 			monome_close(self.monome)
 
 	property rotation:
@@ -383,10 +399,7 @@ cdef class Monome(object):
 		monome_event_loop(self.monome)
 
 	def handle_next_event(self):
-		if monome_event_handle_next(self.monome):
-			return True
-		else:
-			return False
+		return monome_event_handle_next(self.monome)
 
 	def next_event(self):
 		cdef monome_event_t e
@@ -458,7 +471,7 @@ cdef class Monome(object):
 
 		levels_iter = iter(levels)
 
-		for idx in xrange(ARC_RING_SIZE):
+		for idx in range(ARC_RING_SIZE):
 			level = next(levels_iter)
 			level = check_level(level)
 			levels_arr[idx] = level

@@ -67,8 +67,12 @@ monome_t *monome_open(const char *dev, ...) {
 	char *serial, *proto;
 	int error;
 
-	if( !dev )
-		return NULL;
+	printf("running monome_open()\n");
+
+	if( !dev ) {
+		fprintf(stderr, "device is NULL.\n");
+		return NULL;		
+	}
 
 	serial = NULL;
 	m = NULL;
@@ -78,13 +82,17 @@ monome_t *monome_open(const char *dev, ...) {
 		/* assume that the device is a tty...let's probe and see what device
 		   we're dealing with */
 
-		if( !(serial = monome_platform_get_dev_serial(dev)) )
-			return NULL;
+		if( !(serial = monome_platform_get_dev_serial(dev)) ) {
+			fprintf(stderr, "serial is NULL.\n");
+			return NULL;			
+		}
 
-		if( (m = map_serial_to_device(serial)) )
+		if( (m = map_serial_to_device(serial)) ) {
 			proto = m->proto;
-		else
+		} else {
+			fprintf(stderr, "monome_devmap_t is NULL.\n");
 			return NULL;
+		}
 	} else
 		/* otherwise, we'll assume that what we have is an OSC URL.
 
@@ -92,20 +100,26 @@ monome_t *monome_open(const char *dev, ...) {
 		   to think about. */
 		proto = "osc";
 
-	if( !(monome = monome_platform_load_protocol(proto)) )
+	if( !(monome = monome_platform_load_protocol(proto)) ) {
+		fprintf(stderr, "monome_platform_load_protocol failed.\n");
 		goto err_init;
+	}
 
 	va_start(arguments, dev);
 	error = monome->open(monome, dev, serial, m, arguments);
 	va_end(arguments);
 
-	if( error )
+	if( error ) {
+		fprintf(stderr, "monome->open(monome, dev, serial, m, arguments) failed.\n");
 		goto err_init;
+	}
 
 	monome->proto = proto;
 
-	if( !(monome->device = m_strdup(dev)) )
+	if( !(monome->device = m_strdup(dev)) ) {
+		fprintf(stderr, "m_strdup(dev) failed.\n");
 		goto err_nomem;
+	}
 
 	monome->rotation = MONOME_ROTATE_0;
 	return monome;
