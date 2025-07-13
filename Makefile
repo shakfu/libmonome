@@ -1,5 +1,4 @@
 LIBMONOME := build/libmonome.a
-PYEXT := monome.*.so
 
 .phony: all build libmonome python-ext clean reset
 
@@ -10,13 +9,13 @@ $(LIBMONOME):
 		cmake .. && \
 		cmake --build . --config Release
 
-$(PYEXT):
+monome.c:
 	@python3 setup.py build_ext --inplace
 	@rm monome.c
-	@mv src/monome.*.so .	
+	@mv src/monome.*.so .
 
 
-build: $(LIBMONOME) $(PYEXT)
+build: $(LIBMONOME) monome.c
 
 
 test: clean build
