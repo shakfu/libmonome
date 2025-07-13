@@ -58,7 +58,6 @@ cdef extern from "monome.h":
         _ev_encoder encoder
         _ev_tilt tilt
 
-    # const hackery
     ctypedef void (*monome_event_callback_t)(const monome_event_t *event, void *data)
 
     monome_t *monome_open(char *monome_device, ...)
@@ -107,14 +106,16 @@ cpdef enum:
     CABLE_RIGHT
     CABLE_TOP
 
-MODE_NORMAL = 0
-MODE_TEST = 1
-MODE_SHUTDOWN = 2
+cpdef enum:
+    MODE_NORMAL
+    MODE_TEST
+    MODE_SHUTDOWN
 
-ROTATE_0 = 0
-ROTATE_90 = 1
-ROTATE_180 = 2
-ROTATE_270 = 3
+cpdef enum:
+    ROTATE_0
+    ROTATE_90
+    ROTATE_180
+    ROTATE_270
 
 
 cdef uint list_to_bitmap(l) except *:
@@ -146,6 +147,7 @@ def _bitmap_data(data):
 cdef class MonomeEvent:
     cdef object monome
 
+
 cdef class MonomeGridEvent(MonomeEvent):
     cdef uint x, y
     cdef bint pressed
@@ -158,23 +160,24 @@ cdef class MonomeGridEvent(MonomeEvent):
 
     def __repr__(self):
         return "%s(%s, %d, %d)" % \
-                (self.__class__.__name__, self.pressed, self.x, self.y)
+            (self.__class__.__name__, self.pressed, self.x, self.y)
 
-    property monome:
-        def __get__(self):
-            return self.monome
+    @property 
+    def monome(self):
+        return self.monome
 
-    property pressed:
-        def __get__(self):
-            return self.pressed
+    @property 
+    def pressed(self):
+        return self.pressed
 
-    property x:
-        def __get__(self):
-            return self.x
+    @property 
+    def x(self):
+        return self.x
 
-    property y:
-        def __get__(self):
-            return self.y
+    @property 
+    def y(self):
+        return self.y
+
 
 cdef class MonomeEncoderKeyEvent(MonomeEvent):
     cdef bint pressed
@@ -189,17 +192,18 @@ cdef class MonomeEncoderKeyEvent(MonomeEvent):
         return "%s(%d, %d)" % \
                 (self.__class__.__name__, self.pressed, self.number)
 
-    property monome:
-        def __get__(self):
-            return self.monome
+    @property 
+    def monome(self):
+        return self.monome
 
-    property pressed:
-        def __get__(self):
-            return self.pressed
+    @property 
+    def pressed(self):
+        return self.pressed
 
-    property number:
-        def __get__(self):
-            return self.number
+    @property 
+    def number(self):
+        return self.number
+
 
 cdef class MonomeEncoderEvent(MonomeEvent):
     cdef uint number
@@ -214,20 +218,21 @@ cdef class MonomeEncoderEvent(MonomeEvent):
         return "%s(%s, %d)" % \
                 (self.__class__.__name__, self.number, self.delta)
 
-    property monome:
-        def __get__(self):
-            return self.monome
+    @property 
+    def monome(self):
+        return self.monome
 
-    property number:
-        def __get__(self):
-            return self.number
+    @property 
+    def number(self):
+        return self.number
 
-    property delta:
-        def __get__(self):
-            return self.delta
+    @property 
+    def delta(self):
+        return self.delta
+
 
 cdef MonomeEvent event_from_event_t(const monome_event_t *e, object monome=None):
-    if   e.event_type == MONOME_BUTTON_DOWN:
+    if e.event_type == MONOME_BUTTON_DOWN:
         return MonomeGridEvent(1, e.grid.x, e.grid.y, monome)
     elif e.event_type == MONOME_BUTTON_UP:
         return MonomeGridEvent(0, e.grid.x, e.grid.y, monome)
@@ -245,6 +250,7 @@ cdef MonomeEvent event_from_event_t(const monome_event_t *e, object monome=None)
 cdef void handler_thunk(const monome_event_t *event, void *data) noexcept:
     ev_wrapper = event_from_event_t(event, (<Monome> data))
     (<Monome> data).handlers[event.event_type](ev_wrapper)
+
 
 cdef enum:
     ARC_RING_SIZE = 64
@@ -283,10 +289,8 @@ cdef class Monome:
             raise TypeError("OSC protocol requires a server port.")
 
         if port:
-            print("have port", port)
             self.monome = monome_open(device.encode(), bytes(port))
         else:
-            print("have device")
             self.monome = monome_open(device.encode())
 
         if self.monome is NULL:
@@ -306,27 +310,28 @@ cdef class Monome:
         if self.monome is not NULL:
             monome_close(self.monome)
 
-    property rotation:
-        def __get__(self):
-            o = <uint> monome_get_rotation(self.monome)
-            return Monome.rotation_map[o]
+    @property
+    def rotation(self):
+        o = <uint> monome_get_rotation(self.monome)
+        return Monome.rotation_map[o]
 
-        def __set__(self, uint rotation):
-            if rotation > 3:
-                try:
-                    rotation = Monome.rev_rotation_map[rotation]
-                except KeyError:
-                    raise TypeError("'%s' is not a valid rotation." % rotation)
+    @rotation.setter
+    def rotation(self, uint rotation):
+        if rotation > 3:
+            try:
+                rotation = Monome.rev_rotation_map[rotation]
+            except KeyError:
+                raise TypeError("'%s' is not a valid rotation." % rotation)
 
-            monome_set_rotation(self.monome, <monome_rotate_t> rotation)
+        monome_set_rotation(self.monome, <monome_rotate_t> rotation)
 
-    property serial:
-        def __get__(self):
-            return self.serial
+    @property
+    def serial(self):
+        return self.serial
 
-    property devpath:
-        def __get__(self):
-            return self.devpath
+    @property
+    def devpath(self):
+        return self.devpath
 
     @property
     def rows(self):
@@ -377,10 +382,10 @@ cdef class Monome:
     #
     # led functions
     #
-
-    property led_intensity:
-        def __set__(self, uint intensity):
-            monome_led_intensity(self.monome, intensity)
+    
+    def set_led_intensity(self, uint intensity):
+        monome_led_intensity(self.monome, intensity)
+    led_intensity = property(fset=set_led_intensity)
 
     def led_on(self, uint x, uint y):
         monome_led_on(self.monome, x, y)
