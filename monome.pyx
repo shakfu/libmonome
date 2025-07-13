@@ -144,6 +144,109 @@ def _bitmap_data(data):
             raise TypeError("'%s' object is neither iterable nor integer." % type(data).__name__)
 
 
+cdef class Event:
+    cdef monome_event_t * ptr
+    cdef bint owner
+
+    def __cinit__(self):
+        self.ptr = NULL
+        self.owner = False
+
+    def __init__(self):
+        raise TypeError("This class cannot be instantiated directly.")
+
+    @staticmethod
+    cdef Event from_ptr(monome_event_t* ptr, bint owner=False):
+        cdef Event wrapper = Event.__new__(Event)
+        wrapper.ptr = ptr
+        wrapper.owner = owner
+        return wrapper
+
+    @property
+    def monome(self) -> Monome:
+        return Monome.from_ptr(self.ptr.monome)
+
+
+cdef class GridEvent(Event):
+    def __cinit__(self, bint pressed, uint x, uint y, Monome monome):
+        self.ptr.monome = monome.monome
+        self.ptr.event_type = MONOME_BUTTON_DOWN if pressed else MONOME_BUTTON_UP
+        self.ptr.grid.x = x
+        self.ptr.grid.y = y
+
+    def __repr__(self):
+        return "%s(%s, %d, %d)" % \
+            (self.__class__.__name__, self.pressed, self.x, self.y)
+
+    @property 
+    def pressed(self) -> bool:
+        return self.self.ptr.event_type == MONOME_BUTTON_DOWN
+
+    @property 
+    def x(self):
+        return self.ptr.grid.x
+
+    @property 
+    def y(self):
+        return self.ptr.grid.y
+
+
+cdef class EncoderKeyEvent(Event):
+    def __cinit__(self, bint pressed, uint number, Monome monome):
+        self.ptr.monome = monome.monome
+        self.ptr.event_type = MONOME_ENCODER_KEY_DOWN if pressed else MONOME_ENCODER_KEY_UP
+        self.ptr.encoder.number = number
+
+    def __repr__(self):
+        return "%s(%d, %d)" % \
+                (self.__class__.__name__, self.pressed, self.number)
+
+    @property 
+    def pressed(self) -> bool:
+        return self.self.ptr.event_type == MONOME_ENCODER_KEY_DOWN
+
+    @property 
+    def number(self):
+        return self.ptr.encoder.number
+
+
+cdef class EncoderEvent(Event):
+    def __cinit__(self, uint number, int delta, Monome monome):
+        self.ptr.monome = monome.monome
+        self.ptr.event_type = MONOME_ENCODER_DELTA
+        self.ptr.encoder.number = number
+        self.ptr.encoder.delta = delta
+
+    def __repr__(self):
+        return "%s(%s, %d)" % \
+                (self.__class__.__name__, self.number, self.delta)
+
+    @property 
+    def number(self):
+        return self.ptr.encoder.number
+
+    @property 
+    def delta(self):
+        return self.ptr.encoder.delta
+
+
+cdef Event get_event(const monome_event_t *e):
+    cdef Monome monome = Monome.from_ptr(e.monome)
+    if e.event_type == MONOME_BUTTON_DOWN:
+        return GridEvent(1, e.grid.x, e.grid.y, monome)
+    elif e.event_type == MONOME_BUTTON_UP:
+        return GridEvent(0, e.grid.x, e.grid.y, monome)
+    elif e.event_type == MONOME_ENCODER_DELTA:
+        return EncoderEvent(e.encoder.number, e.encoder.delta, monome)
+    elif e.event_type == MONOME_ENCODER_KEY_DOWN:
+        return EncoderKeyEvent(1, e.encoder.number, monome)
+    elif e.event_type == MONOME_ENCODER_KEY_UP:
+        return EncoderKeyEvent(0, e.encoder.number, monome)
+    else:
+        raise RuntimeError('Unknown or unimplemented event_type {}'.format(e.event_type))
+
+
+
 cdef class MonomeEvent:
     cdef object monome
 
@@ -263,6 +366,7 @@ def check_level(level):
 
 cdef class Monome:
     cdef monome_t *monome
+    cdef bint owner
 
     cdef str serial
     cdef str devpath
@@ -283,6 +387,7 @@ cdef class Monome:
 
     def __cinit__(self):
         self.monome = NULL
+        self.owner = False
 
     def __init__(self, str device, int port = 0, bint clear = True):
         if device[:3] == "osc" and not port:
@@ -295,6 +400,7 @@ cdef class Monome:
 
         if self.monome is NULL:
             raise IOError("Could not open Monome")
+        self.owner = True
 
         cdef const char * ser = monome_get_serial(self.monome)
 
@@ -307,8 +413,15 @@ cdef class Monome:
             self.led_all(0)
 
     def __dealloc__(self):
-        if self.monome is not NULL:
+        if self.monome is not NULL and self.owner:
             monome_close(self.monome)
+
+    @staticmethod
+    cdef Monome from_ptr(monome_t * ptr, bint owner=False):
+        cdef Monome wrapper = Monome.__new__(Monome)
+        wrapper.monome = ptr
+        wrapper.owner = owner
+        return wrapper
 
     @property
     def rotation(self):
