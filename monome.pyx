@@ -394,7 +394,7 @@ cdef class Monome:
             raise TypeError("OSC protocol requires a server port.")
 
         if port:
-            self.monome = monome_open(device.encode(), bytes(port))
+            self.monome = monome_open(device.encode(), str(port).encode())
         else:
             self.monome = monome_open(device.encode())
 
