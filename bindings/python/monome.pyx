@@ -14,8 +14,6 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-from cpython cimport bool
-
 cdef extern from "stdint.h":
 	ctypedef unsigned int uint
 	ctypedef char uint8_t
@@ -124,17 +122,30 @@ all = [
 
 	"Monome"]
 
-BUTTON_UP, BUTTON_DOWN, ENCODER_DELTA, ENCODER_KEY_UP, ENCODER_KEY_DOWN, TILT = range(6)
-CABLE_LEFT, CABLE_BOTTOM, CABLE_RIGHT, CABLE_TOP = range(4)
+cpdef enum:
+	BUTTON_UP
+	BUTTON_DOWN
+	ENCODER_DELTA
+	ENCODER_KEY_UP
+	ENCODER_KEY_DOWN
+	TILT
 
-MODE_NORMAL = 0
-MODE_TEST = 1
-MODE_SHUTDOWN = 2
+cpdef enum:
+	CABLE_LEFT
+	CABLE_BOTTOM
+	CABLE_RIGHT
+	CABLE_TOP
 
-ROTATE_0 = 0
-ROTATE_90 = 1
-ROTATE_180 = 2
-ROTATE_270 = 3
+cpdef enum:
+	MODE_NORMAL
+	MODE_TEST
+	MODE_SHUTDOWN
+
+cpdef enum:
+	ROTATE_0
+	ROTATE_90
+	ROTATE_180
+	ROTATE_270
 
 
 cdef uint list_to_bitmap(l) except *:
@@ -163,16 +174,16 @@ def _bitmap_data(data):
 			raise TypeError("'%s' object is neither iterable nor integer." % type(data).__name__)
 
 
-cdef class MonomeEvent(object):
+cdef class MonomeEvent:
 	cdef object monome
 
 cdef class MonomeGridEvent(MonomeEvent):
 	cdef uint x, y
-	cdef bool pressed
+	cdef bint pressed
 
-	def __cinit__(self, pressed, uint x, uint y, object monome):
+	def __cinit__(self, bint pressed, uint x, uint y, object monome):
 		self.monome = monome
-		self.pressed = bool(pressed)
+		self.pressed = pressed
 		self.x = x
 		self.y = y
 
@@ -197,12 +208,12 @@ cdef class MonomeGridEvent(MonomeEvent):
 			return self.y
 
 cdef class MonomeEncoderKeyEvent(MonomeEvent):
-	cdef bool pressed
+	cdef bint pressed
 	cdef uint number
 
-	def __cinit__(self, pressed, number, object monome):
+	def __cinit__(self, bint pressed, uint number, object monome):
 		self.monome = monome
-		self.pressed = bool(pressed)
+		self.pressed = pressed
 		self.number = number
 
 	def __repr__(self):
@@ -225,7 +236,7 @@ cdef class MonomeEncoderEvent(MonomeEvent):
 	cdef uint number
 	cdef int delta
 
-	def __cinit__(self, number, delta, object monome):
+	def __cinit__(self, uint number, int delta, object monome):
 		self.monome = monome
 		self.number = number
 		self.delta = delta
@@ -275,7 +286,7 @@ def check_level(level):
 
 	return level
 
-cdef class Monome(object):
+cdef class Monome:
 	cdef monome_t *monome
 
 	cdef str serial
@@ -300,7 +311,7 @@ cdef class Monome(object):
 			raise TypeError("OSC protocol requires a server port.")
 
 		if port:
-			self.monome = monome_open(device.encode(), bytes(port))
+			self.monome = monome_open(device.encode(), str(port).encode())
 		else:
 			self.monome = monome_open(device.encode())
 
@@ -409,11 +420,11 @@ cdef class Monome(object):
 	def led_all(self, uint status=0):
 		monome_led_all(self.monome, status)
 
-	def led_row(self, x_off, y, data):
+	def led_row(self, uint x_off, uint y, data):
 		cdef uint16_t d = _bitmap_data(data)
 		monome_led_row(self.monome, x_off, y, 2, <uint8_t *> &d)
 
-	def led_col(self, x, y_off, idx, data):
+	def led_col(self, uint x, uint y_off, data):
 		cdef uint16_t d = _bitmap_data(data)
 		monome_led_col(self.monome, x, y_off, 2, <uint8_t *> &d)
 
@@ -438,15 +449,15 @@ cdef class Monome(object):
 
 		monome_led_map(self.monome, x_off, y_off, r)
 
-	def led_ring_set(self, ring, led, level):
+	def led_ring_set(self, uint ring, uint led, uint level):
 		level = check_level(level)
 		monome_led_ring_set(self.monome, ring, led, level)
 
-	def led_ring_all(self, ring, level):
+	def led_ring_all(self, uint ring, uint level):
 		level = check_level(level)
 		monome_led_ring_all(self.monome, ring, level)
 
-	def led_ring_map(self, ring, levels):
+	def led_ring_map(self, uint ring, uint levels):
 		cdef uint8_t levels_arr[ARC_RING_SIZE]
 
 		levels_iter = iter(levels)
@@ -458,6 +469,6 @@ cdef class Monome(object):
 		
 		monome_led_ring_map(self.monome, ring, levels_arr)
 
-	def led_ring_range(self, ring, start, end, level):
+	def led_ring_range(self, uint ring, uint start, uint end, uint level):
 		level = check_level(level)
 		monome_led_ring_range(self.monome, ring, start, end, level)

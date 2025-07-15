@@ -1,8 +1,12 @@
+import os
 import platform
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 
 PLATFORM = platform.system()
+
+os.system("cython -o build/monome.c bindings/python/monome.pyx")
+
 
 setup(
     name='monome',
@@ -10,7 +14,8 @@ setup(
     ext_modules=cythonize([
         Extension(
             name="monome",
-            sources=["bindings/python/monome.pyx"],
+            sources=["build/monome.c"],
+            # sources=["bindings/python/monome.pyx"],
             define_macros=[],
             include_dirs=[
                 "public",

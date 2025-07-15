@@ -1,7 +1,7 @@
 LIBMONOME := build/libmonome.a
 
 
-.phony: all build python-cmake python clean
+.phony: all build python clean
 
 
 all: build
@@ -13,11 +13,6 @@ $(LIBMONOME):
 		cmake --build . --config Release
 
 build: $(LIBMONOME)
-
-python-cmake: $(LIBMONOME)
-	 @mkdir -p build && cd build && \
-		cmake .. -DBUILD_PYTHON_EXTENSION=ON && \
-		cmake --build . --config Release
 
 python: $(LIBMONOME)
 	@python3 bindings/python/setup.py \
