@@ -1,7 +1,7 @@
 LIBMONOME := build/libmonome.a
 
 
-.phony: all build python clean
+.phony: all build python-setup python clean
 
 
 all: build
@@ -14,12 +14,17 @@ $(LIBMONOME):
 
 build: $(LIBMONOME)
 
-python: $(LIBMONOME)
+python-setup: $(LIBMONOME)
 	@python3 bindings/python/setup.py \
 		build --build-base build/cython \
 	    egg_info --egg-base build/cython \
 	    sdist --dist-dir build/cython \
 	    bdist_wheel --dist-dir build/cython
+
+python:
+	@mkdir -p build && cd build && \
+		cmake .. -DBUILD_PYTHON_EXTENSION=ON && \
+		cmake --build . --config Release
 
 clean:
 	@rm -rf build
