@@ -14,53 +14,55 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
+
+from typing import Optional
+
+
 cdef extern from "stdint.h":
 	ctypedef unsigned int uint
 	ctypedef char uint8_t
 	ctypedef unsigned short int uint16_t
 
+
 cdef extern from "monome.h":
 	ctypedef struct monome_t
 
 	ctypedef enum monome_event_type_t:
-		MONOME_BUTTON_UP,
-		MONOME_BUTTON_DOWN,
-		MONOME_ENCODER_DELTA,
-		MONOME_ENCODER_KEY_UP,
-		MONOME_ENCODER_KEY_DOWN,
+		MONOME_BUTTON_UP
+		MONOME_BUTTON_DOWN
+		MONOME_ENCODER_DELTA
+		MONOME_ENCODER_KEY_UP
+		MONOME_ENCODER_KEY_DOWN
 		MONOME_TILT
 
 	ctypedef enum monome_rotate_t:
-		MONOME_CABLE_LEFT,
-		MONOME_CABLE_BOTTOM,
-		MONOME_CABLE_RIGHT,
+		MONOME_CABLE_LEFT
+		MONOME_CABLE_BOTTOM
+		MONOME_CABLE_RIGHT
 		MONOME_CABLE_TOP
 
 	cdef struct _ev_grid:
-		uint x,
+		uint x
 		uint y
 
 	cdef struct _ev_encoder:
-		uint number,
+		uint number
 		int delta
 
 	cdef struct _ev_tilt:
-		uint sensor,
-		int x,
-		int y,
+		uint sensor
+		int x
+		int y
 		int z
 
 	ctypedef struct monome_event_t:
-		monome_t *monome,
-		monome_event_type_t event_type,
-
-		_ev_grid grid,
-		_ev_encoder encoder,
+		monome_t *monome
+		monome_event_type_t event_type
+		_ev_grid grid
+		_ev_encoder encoder
 		_ev_tilt tilt
 
-	# const hackery
-	ctypedef monome_event_t const_monome_event_t "const monome_event_t"
-	ctypedef void (*monome_event_callback_t)(const_monome_event_t *event, void *data)
+	ctypedef void (*monome_event_callback_t)(const monome_event_t *event, void *data)
 
 	monome_t *monome_open(char *monome_device, ...)
 	void monome_close(monome_t *monome)
@@ -68,17 +70,13 @@ cdef extern from "monome.h":
 	void monome_set_rotation(monome_t *monome, monome_rotate_t cable)
 	monome_rotate_t monome_get_rotation(monome_t *monome)
 
-	# more const hackery
 	const char * monome_get_serial(monome_t *monome)
 	const char * monome_get_devpath(monome_t *monome)
 	int monome_get_rows(monome_t *monome)
 	int monome_get_cols(monome_t *monome)
 
-	int monome_register_handler(monome_t *monome,
-			monome_event_type_t event_type, monome_event_callback_t,
-			void *user_data)
-	int monome_unregister_handler(monome_t *monome,
-			monome_event_type_t event_type)
+	int monome_register_handler(monome_t *monome, monome_event_type_t event_type, monome_event_callback_t, void *user_data)
+	int monome_unregister_handler(monome_t *monome, monome_event_type_t event_type)
 	void monome_event_loop(monome_t *monome)
 	int monome_event_next(monome_t *monome, monome_event_t *event_buf)
 	int monome_event_handle_next(monome_t *monome)
@@ -93,33 +91,32 @@ cdef extern from "monome.h":
 	int monome_led_col(monome_t *monome, uint x, uint y_off, size_t count, uint8_t *data)
 	int monome_led_map(monome_t *monome, uint x_off, uint y_off, uint8_t *data)
 
-	int monome_led_ring_set(monome_t *monome, unsigned int ring, unsigned int led,
-							unsigned int level)
-	int monome_led_ring_all(monome_t *monome, unsigned int ring,
-							unsigned int level)
-	int monome_led_ring_map(monome_t *monome, unsigned int ring,
-							const uint8_t *levels)
-	int monome_led_ring_range(monome_t *monome, unsigned int ring,
-							  unsigned int start, unsigned int end,
-							  unsigned int level)
+	int monome_led_ring_set(monome_t *monome, unsigned int ring, unsigned int led, unsigned int level)
+	int monome_led_ring_all(monome_t *monome, unsigned int ring, unsigned int level)
+	int monome_led_ring_map(monome_t *monome, unsigned int ring, const uint8_t *levels)
+	int monome_led_ring_range(monome_t *monome, unsigned int ring, unsigned int start, unsigned int end, unsigned int level)
 
-all = [
-	# constants
-	# XXX: should these be members of the class?
 
-	"MODE_NORMAL",
-	"MODE_TEST",
-	"MODE_SHUTDOWN",
-	"CABLE_LEFT",
-	"CABLE_BOTTOM",
-	"CABLE_RIGHT",
-	"CABLE_TOP",
+cpdef enum:
+	BUTTON_UP
+	BUTTON_DOWN
+	ENCODER_DELTA
+	ENCODER_KEY_UP
+	ENCODER_KEY_DOWN
+	TILT
 
-	# classes
+cpdef enum:
+	CABLE_LEFT
+	CABLE_BOTTOM
+	CABLE_RIGHT
+	CABLE_TOP
 
-	"MonomeEvent",
-	"MonomeGridEvent",
+cpdef enum:
+	MODE_NORMAL
+	MODE_TEST
+	MODE_SHUTDOWN
 
+<<<<<<< HEAD
 	"Monome"]
 
 cpdef enum:
@@ -155,7 +152,7 @@ cdef uint list_to_bitmap(l) except *:
 	iterator = iter(l)
 
 	try:
-		for i from 0 <= i < 16:
+		for i in range(16):
 			if iterator.next():
 				ret |= (1 << i)
 	except StopIteration:
@@ -164,7 +161,7 @@ cdef uint list_to_bitmap(l) except *:
 	return ret
 
 
-def _bitmap_data(data):
+def _bitmap_data(list[int] data):
 	try:
 		return list_to_bitmap(data)
 	except TypeError:
@@ -176,6 +173,7 @@ def _bitmap_data(data):
 
 cdef class MonomeEvent:
 	cdef object monome
+
 
 cdef class MonomeGridEvent(MonomeEvent):
 	cdef uint x, y
@@ -189,23 +187,24 @@ cdef class MonomeGridEvent(MonomeEvent):
 
 	def __repr__(self):
 		return "%s(%s, %d, %d)" % \
-				(self.__class__.__name__, self.pressed, self.x, self.y)
+			(self.__class__.__name__, self.pressed, self.x, self.y)
 
-	property monome:
-		def __get__(self):
-			return self.monome
+	@property 
+	def monome(self) -> object:
+		return self.monome
 
-	property pressed:
-		def __get__(self):
-			return self.pressed
+	@property 
+	def pressed(self) -> bool:
+		return self.pressed
 
-	property x:
-		def __get__(self):
-			return self.x
+	@property 
+	def x(self) -> uint:
+		return self.x
 
-	property y:
-		def __get__(self):
-			return self.y
+	@property 
+	def y(self) -> uint:
+		return self.y
+
 
 cdef class MonomeEncoderKeyEvent(MonomeEvent):
 	cdef bint pressed
@@ -220,17 +219,18 @@ cdef class MonomeEncoderKeyEvent(MonomeEvent):
 		return "%s(%d, %d)" % \
 				(self.__class__.__name__, self.pressed, self.number)
 
-	property monome:
-		def __get__(self):
-			return self.monome
+	@property 
+	def monome(self) -> object:
+		return self.monome
 
-	property pressed:
-		def __get__(self):
-			return self.pressed
+	@property 
+	def pressed(self) -> bool:
+		return self.pressed
 
-	property number:
-		def __get__(self):
-			return self.number
+	@property 
+	def number(self) -> int:
+		return self.number
+
 
 cdef class MonomeEncoderEvent(MonomeEvent):
 	cdef uint number
@@ -245,20 +245,21 @@ cdef class MonomeEncoderEvent(MonomeEvent):
 		return "%s(%s, %d)" % \
 				(self.__class__.__name__, self.number, self.delta)
 
-	property monome:
-		def __get__(self):
-			return self.monome
+	@property 
+	def monome(self) -> object:
+		return self.monome
 
-	property number:
-		def __get__(self):
-			return self.number
+	@property 
+	def number(self) -> uint :
+		return self.number
 
-	property delta:
-		def __get__(self):
-			return self.delta
+	@property 
+	def delta(self) -> int:
+		return self.delta
 
-cdef MonomeEvent event_from_event_t(const_monome_event_t *e, object monome=None):
-	if   e.event_type == MONOME_BUTTON_DOWN:
+
+cdef MonomeEvent event_from_event_t(const monome_event_t *e, object monome=None):
+	if e.event_type == MONOME_BUTTON_DOWN:
 		return MonomeGridEvent(1, e.grid.x, e.grid.y, monome)
 	elif e.event_type == MONOME_BUTTON_UP:
 		return MonomeGridEvent(0, e.grid.x, e.grid.y, monome)
@@ -273,12 +274,14 @@ cdef MonomeEvent event_from_event_t(const_monome_event_t *e, object monome=None)
 
 	# XXX: handle other event types
 
-cdef void handler_thunk(const_monome_event_t *event, void *data) noexcept:
+cdef void handler_thunk(const monome_event_t *event, void *data) noexcept:
 	ev_wrapper = event_from_event_t(event, (<Monome> data))
 	(<Monome> data).handlers[event.event_type](ev_wrapper)
 
+
 cdef enum:
 	ARC_RING_SIZE = 64
+
 
 def check_level(level):
 	if level < 0 or level > 15:
@@ -286,8 +289,10 @@ def check_level(level):
 
 	return level
 
+
 cdef class Monome:
 	cdef monome_t *monome
+	cdef bint owner
 
 	cdef str serial
 	cdef str devpath
@@ -306,6 +311,10 @@ cdef class Monome:
 		180: ROTATE_180,
 		270: ROTATE_270}
 
+	def __cinit__(self):
+		self.monome = NULL
+		self.owner = False
+
 	def __init__(self, str device, int port = 0, bint clear = True):
 		if device[:3] == "osc" and not port:
 			raise TypeError("OSC protocol requires a server port.")
@@ -315,8 +324,9 @@ cdef class Monome:
 		else:
 			self.monome = monome_open(device.encode())
 
-		if not self.monome:
+		if self.monome is NULL:
 			raise IOError("Could not open Monome")
+		self.owner = True
 
 		cdef const char * ser = monome_get_serial(self.monome)
 
@@ -326,41 +336,49 @@ cdef class Monome:
 		self.handlers = [None, None, None]
 
 		if clear:
-			self.led_all(0)
+			self.clear()
 
 	def __dealloc__(self):
-		if self.monome:
+		if self.monome is not NULL and self.owner:
 			monome_close(self.monome)
 
-	property rotation:
-		def __get__(self):
-			o = <uint> monome_get_rotation(self.monome)
-			return Monome.rotation_map[o]
-
-		def __set__(self, uint rotation):
-			if rotation > 3:
-				try:
-					rotation = Monome.rev_rotation_map[rotation]
-				except KeyError:
-					raise TypeError("'%s' is not a valid rotation." % rotation)
-
-			monome_set_rotation(self.monome, <monome_rotate_t> rotation)
-
-	property serial:
-		def __get__(self):
-			return self.serial
-
-	property devpath:
-		def __get__(self):
-			return self.devpath
+	@staticmethod
+	cdef Monome from_ptr(monome_t * ptr, bint owner=False):
+		cdef Monome wrapper = Monome.__new__(Monome)
+		wrapper.monome = ptr
+		wrapper.owner = owner
+		return wrapper
 
 	@property
-	def rows(self):
+	def rotation(self) -> uint:
+		o = <uint> monome_get_rotation(self.monome)
+		return Monome.rotation_map[o]
+
+	@rotation.setter
+	def rotation(self, uint rotation):
+		if rotation > 3:
+			try:
+				rotation = Monome.rev_rotation_map[rotation]
+			except KeyError:
+				raise TypeError("'%s' is not a valid rotation." % rotation)
+
+		monome_set_rotation(self.monome, <monome_rotate_t> rotation)
+
+	@property
+	def serial(self) -> str:
+		return self.serial
+
+	@property
+	def devpath(self) -> str:
+		return self.devpath
+
+	@property
+	def rows(self) -> int:
 		return monome_get_rows(self.monome)
 
 	# "columns" seems more pythonic than "cols"
 	@property
-	def columns(self):
+	def columns(self) -> int:
 		return monome_get_cols(self.monome)
 
 	#
@@ -374,7 +392,7 @@ cdef class Monome:
 		# monome_register_handler returns 0 on success, EINVAL when
 		# passed an invalid event type.
 		if monome_register_handler(self.monome, event_type,
-		                           handler_thunk, <void *> self):
+								   handler_thunk, <void *> self):
 			raise TypeError("Unsupported event type.")
 
 		self.handlers[event_type] = handler
@@ -386,13 +404,10 @@ cdef class Monome:
 	def event_loop(self):
 		monome_event_loop(self.monome)
 
-	def handle_next_event(self):
-		if monome_event_handle_next(self.monome):
-			return True
-		else:
-			return False
+	def handle_next_event(self) -> int:
+		return monome_event_handle_next(self.monome)
 
-	def next_event(self):
+	def next_event(self) -> Optional[MonomeEvent]:
 		cdef monome_event_t e
 
 		if monome_event_next(self.monome, &e):
@@ -400,16 +415,16 @@ cdef class Monome:
 
 		return None
 
-	def fileno(self):
+	def fileno(self) -> int:
 		return self.fd
 
 	#
 	# led functions
 	#
 
-	property led_intensity:
-		def __set__(self, uint intensity):
-			monome_led_intensity(self.monome, intensity)
+	def set_led_intensity(self, uint intensity):
+		monome_led_intensity(self.monome, intensity)
+	led_intensity = property(fset=set_led_intensity)
 
 	def led_on(self, uint x, uint y):
 		monome_led_on(self.monome, x, y)
@@ -420,15 +435,15 @@ cdef class Monome:
 	def led_all(self, uint status=0):
 		monome_led_all(self.monome, status)
 
-	def led_row(self, uint x_off, uint y, data):
+	def led_row(self, uint x_off, uint y, list[int] data):
 		cdef uint16_t d = _bitmap_data(data)
 		monome_led_row(self.monome, x_off, y, 2, <uint8_t *> &d)
 
-	def led_col(self, uint x, uint y_off, data):
+	def led_col(self, uint x, uint y_off, list[int] data):
 		cdef uint16_t d = _bitmap_data(data)
 		monome_led_col(self.monome, x, y_off, 2, <uint8_t *> &d)
 
-	def led_map(self, uint x_off, uint y_off, data):
+	def led_map(self, uint x_off, uint y_off, list[int] data):
 		cdef uint8_t r[8]
 		cdef uint16_t d
 		cdef uint i
@@ -437,11 +452,10 @@ cdef class Monome:
 		data_iter = iter(data)
 
 		# cython :(
-		r[0] = r[1] = r[2] = r[3] = r[4] =\
-			r[5] = r[6] = r[7] = 0
+		r[0] = r[1] = r[2] = r[3] = r[4] = r[5] = r[6] = r[7] = 0
 
 		try:
-			for i from 0 <= i < 8:
+			for i in range(8):
 				d = _bitmap_data(data_iter.next())
 				r[i] = (<uint8_t *> &d)[0]
 		except StopIteration:
@@ -457,7 +471,7 @@ cdef class Monome:
 		level = check_level(level)
 		monome_led_ring_all(self.monome, ring, level)
 
-	def led_ring_map(self, uint ring, uint levels):
+	def led_ring_map(self, uint ring, list[int] levels):
 		cdef uint8_t levels_arr[ARC_RING_SIZE]
 
 		levels_iter = iter(levels)
@@ -466,9 +480,12 @@ cdef class Monome:
 			level = next(levels_iter)
 			level = check_level(level)
 			levels_arr[idx] = level
-		
+
 		monome_led_ring_map(self.monome, ring, levels_arr)
 
 	def led_ring_range(self, uint ring, uint start, uint end, uint level):
 		level = check_level(level)
 		monome_led_ring_range(self.monome, ring, start, end, level)
+
+	def clear(self):
+		self.led_all(0)
