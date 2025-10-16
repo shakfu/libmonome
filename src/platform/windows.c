@@ -384,8 +384,26 @@ int monome_platform_wait_for_input(monome_t *monome, uint_t msec) {
 }
 
 void monome_event_loop(monome_t *monome) {
-	printf("monome_event_loop() is unimplemented\n");
-	return;
+	monome_callback_t *handler;
+	monome_event_t e;
+
+	e.monome = monome;
+
+	do {
+		if (monome_platform_wait_for_input(monome, INFINITE) < 0) {
+			fprintf(stderr, "libmonome: error waiting for input\n");
+			break;
+		}
+
+		if (monome->next_event(monome, &e) < 1)
+			continue;
+
+		handler = &monome->handlers[e.event_type];
+		if (!handler->cb)
+			continue;
+
+		handler->cb(&e, handler->data);
+	} while (1);
 }
 
 void *m_malloc(size_t size) {

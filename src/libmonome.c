@@ -93,14 +93,14 @@ monome_t *monome_open(const char *dev, ...) {
 		proto = "osc";
 
 	if( !(monome = monome_platform_load_protocol(proto)) )
-		goto err_init;
+		goto err_proto;
 
 	va_start(arguments, dev);
 	error = monome->open(monome, dev, serial, m, arguments);
 	va_end(arguments);
 
 	if( error )
-		goto err_init;
+		goto err_open;
 
 	monome->proto = proto;
 
@@ -108,12 +108,17 @@ monome_t *monome_open(const char *dev, ...) {
 		goto err_nomem;
 
 	monome->rotation = MONOME_ROTATE_0;
+	if( serial ) m_free(serial);
 	return monome;
 
 err_nomem:
 	monome->free(monome);
+	goto err_proto;
 
-err_init:
+err_open:
+	monome_platform_free(monome);
+
+err_proto:
 	if( serial ) m_free(serial);
 	return NULL;
 }
@@ -216,20 +221,26 @@ int monome_get_fd(monome_t *monome) {
 	return monome->fd;
 }
 
-#define REQUIRE(capability) if (!monome->capability) return -1
+#define REQUIRE(capability) if (!monome->capability) return MONOME_ERROR_UNSUPPORTED
+
+#define CHECK_BOUNDS(x, y) \
+	do { \
+		if ((x) >= (uint_t)monome_get_cols(monome) || \
+		    (y) >= (uint_t)monome_get_rows(monome)) \
+			return MONOME_ERROR_OUT_OF_RANGE; \
+	} while (0)
 
 int monome_led_set(monome_t *monome, uint_t x, uint_t y, uint_t on) {
 	REQUIRE(led);
+	CHECK_BOUNDS(x, y);
 	return monome->led->set(monome, x, y, on);
 }
 
 int monome_led_on(monome_t *monome, uint_t x, uint_t y) {
-	REQUIRE(led);
 	return monome_led_set(monome, x, y, 1);
 }
 
 int monome_led_off(monome_t *monome, uint_t x, uint_t y) {
-	REQUIRE(led);
 	return monome_led_set(monome, x, y, 0);
 }
 
@@ -241,18 +252,25 @@ int monome_led_all(monome_t *monome, uint_t status) {
 int monome_led_map(monome_t *monome, uint_t x_off, uint_t y_off,
                    const uint8_t *data) {
 	REQUIRE(led);
+	if (x_off >= (uint_t)monome_get_cols(monome) ||
+	    y_off >= (uint_t)monome_get_rows(monome))
+		return MONOME_ERROR_OUT_OF_RANGE;
 	return monome->led->map(monome, x_off, y_off, data);
 }
 
 int monome_led_row(monome_t *monome, uint_t x_off, uint_t y,
 				   size_t count, const uint8_t *data) {
 	REQUIRE(led);
+	if (y >= (uint_t)monome_get_rows(monome))
+		return MONOME_ERROR_OUT_OF_RANGE;
 	return monome->led->row(monome, x_off, y, count, data);
 }
 
 int monome_led_col(monome_t *monome, uint_t x, uint_t y_off,
 				   size_t count, const uint8_t *data) {
 	REQUIRE(led);
+	if (x >= (uint_t)monome_get_cols(monome))
+		return MONOME_ERROR_OUT_OF_RANGE;
 	return monome->led->col(monome, x, y_off, count, data);
 }
 
@@ -263,6 +281,7 @@ int monome_led_intensity(monome_t *monome, uint_t brightness) {
 
 int monome_led_level_set(monome_t *monome, uint_t x, uint_t y, uint_t level) {
 	REQUIRE(led_level);
+	CHECK_BOUNDS(x, y);
 	return monome->led_level->set(monome, x, y, level);
 }
 
@@ -274,18 +293,25 @@ int monome_led_level_all(monome_t *monome, uint_t level) {
 int monome_led_level_map(monome_t *monome, uint_t x_off, uint_t y_off,
                          const uint8_t *data) {
 	REQUIRE(led_level);
+	if (x_off >= (uint_t)monome_get_cols(monome) ||
+	    y_off >= (uint_t)monome_get_rows(monome))
+		return MONOME_ERROR_OUT_OF_RANGE;
 	return monome->led_level->map(monome, x_off, y_off, data);
 }
 
 int monome_led_level_row(monome_t *monome, uint_t x_off, uint_t y,
                          size_t count, const uint8_t *data) {
 	REQUIRE(led_level);
+	if (y >= (uint_t)monome_get_rows(monome))
+		return MONOME_ERROR_OUT_OF_RANGE;
 	return monome->led_level->row(monome, x_off, y, count, data);
 }
 
 int monome_led_level_col(monome_t *monome, uint_t x, uint_t y_off,
                          size_t count, const uint8_t *data) {
 	REQUIRE(led_level);
+	if (x >= (uint_t)monome_get_cols(monome))
+		return MONOME_ERROR_OUT_OF_RANGE;
 	return monome->led_level->col(monome, x, y_off, count, data);
 }
 

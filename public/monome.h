@@ -27,6 +27,16 @@ extern "C" {
 
 #include <sys/types.h>
 
+/* error codes */
+
+typedef enum {
+	MONOME_OK                 =  0,
+	MONOME_ERROR_GENERIC      = -1,
+	MONOME_ERROR_INVALID_ARG  = -2,
+	MONOME_ERROR_OUT_OF_RANGE = -3,
+	MONOME_ERROR_UNSUPPORTED  = -4
+} monome_error_t;
+
 /* event types */
 
 typedef enum {
