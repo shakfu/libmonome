@@ -15,8 +15,10 @@
  */
 
 #include <poll.h>
+#include <stdlib.h>
 
 #include <monome.h>
+#include "internal.h"
 #include "platform.h"
 
 int monome_platform_wait_for_input(monome_t *monome, uint_t msec) {
@@ -35,4 +37,48 @@ int monome_platform_wait_for_input(monome_t *monome, uint_t msec) {
 		return -1;
 
 	return 0;
+}
+
+int monome_poll_group_wait(monome_poll_group_t *group, int timeout_ms) {
+	struct pollfd *fds;
+	unsigned int i;
+	int ret, dispatched;
+
+	if( !group || !group->count )
+		return -1;
+
+	fds = calloc(group->count, sizeof(struct pollfd));
+	if( !fds )
+		return -1;
+
+	for( i = 0; i < group->count; i++ ) {
+		fds[i].fd = monome_get_fd(group->monomes[i]);
+		fds[i].events = POLLIN;
+	}
+
+	ret = poll(fds, group->count, timeout_ms);
+	if( ret < 0 ) {
+		free(fds);
+		return -1;
+	}
+	if( ret == 0 ) {
+		free(fds);
+		return 0;
+	}
+
+	dispatched = 0;
+	for( i = 0; i < group->count; i++ ) {
+		if( fds[i].revents & POLLERR ) {
+			free(fds);
+			return -1;
+		}
+		if( fds[i].revents & POLLIN ) {
+			ret = monome_event_handle_next(group->monomes[i]);
+			if( ret > 0 )
+				dispatched += ret;
+		}
+	}
+
+	free(fds);
+	return dispatched;
 }

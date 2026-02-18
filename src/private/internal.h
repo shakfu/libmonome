@@ -147,4 +147,12 @@ struct monome {
 	monome_tilt_functions_t *tilt;
 };
 
+#define MONOME_POLL_GROUP_INITIAL_CAP 4
+
+struct monome_poll_group {
+	monome_t **monomes;
+	unsigned int count;
+	unsigned int capacity;
+};
+
 #endif /* defined MONOME_INTERNAL_H */

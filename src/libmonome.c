@@ -221,6 +221,74 @@ int monome_get_fd(monome_t *monome) {
 	return monome->fd;
 }
 
+monome_poll_group_t *monome_poll_group_new(void) {
+	monome_poll_group_t *group;
+
+	group = m_calloc(1, sizeof(*group));
+	if( !group )
+		return NULL;
+
+	group->monomes = m_calloc(MONOME_POLL_GROUP_INITIAL_CAP,
+	                          sizeof(monome_t *));
+	if( !group->monomes ) {
+		m_free(group);
+		return NULL;
+	}
+
+	group->capacity = MONOME_POLL_GROUP_INITIAL_CAP;
+	group->count = 0;
+	return group;
+}
+
+void monome_poll_group_free(monome_poll_group_t *group) {
+	if( !group )
+		return;
+
+	m_free(group->monomes);
+	m_free(group);
+}
+
+int monome_poll_group_add(monome_poll_group_t *group, monome_t *monome) {
+	unsigned int i;
+	monome_t **new_arr;
+
+	if( !group || !monome )
+		return MONOME_ERROR_INVALID_ARG;
+
+	for( i = 0; i < group->count; i++ )
+		if( group->monomes[i] == monome )
+			return MONOME_ERROR_INVALID_ARG;
+
+	if( group->count == group->capacity ) {
+		new_arr = realloc(group->monomes,
+		                  group->capacity * 2 * sizeof(monome_t *));
+		if( !new_arr )
+			return MONOME_ERROR_GENERIC;
+		group->monomes = new_arr;
+		group->capacity *= 2;
+	}
+
+	group->monomes[group->count++] = monome;
+	return MONOME_OK;
+}
+
+int monome_poll_group_remove(monome_poll_group_t *group, monome_t *monome) {
+	unsigned int i;
+
+	if( !group || !monome )
+		return MONOME_ERROR_INVALID_ARG;
+
+	for( i = 0; i < group->count; i++ ) {
+		if( group->monomes[i] == monome ) {
+			group->monomes[i] = group->monomes[group->count - 1];
+			group->count--;
+			return MONOME_OK;
+		}
+	}
+
+	return MONOME_ERROR_INVALID_ARG;
+}
+
 #define REQUIRE(capability) if (!monome->capability) return MONOME_ERROR_UNSUPPORTED
 
 #define CHECK_BOUNDS(x, y) \

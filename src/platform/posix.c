@@ -223,6 +223,11 @@ void monome_event_loop(monome_t *monome) {
 	} while( 1 );
 }
 
+void monome_poll_group_loop(monome_poll_group_t *group) {
+	while( monome_poll_group_wait(group, -1) >= 0 )
+		;
+}
+
 void *m_malloc(size_t size) {
 	return malloc(size);
 }

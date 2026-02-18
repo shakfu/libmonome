@@ -21,6 +21,7 @@
 #include <string.h>
 #include <sys/select.h>
 
+#include "internal.h"
 #include "platform.h"
 
 char *monome_platform_get_dev_serial(const char *path) {
@@ -66,4 +67,54 @@ int monome_platform_wait_for_input(monome_t *monome, uint_t msec) {
 		return -1;
 
 	return 0;
+}
+
+int monome_poll_group_wait(monome_poll_group_t *group, int timeout_ms) {
+	struct timeval tv, *tvp;
+	fd_set rfds, efds;
+	unsigned int i;
+	int maxfd, fd, ret, dispatched;
+
+	if( !group || !group->count )
+		return -1;
+
+	FD_ZERO(&rfds);
+	FD_ZERO(&efds);
+	maxfd = -1;
+
+	for( i = 0; i < group->count; i++ ) {
+		fd = monome_get_fd(group->monomes[i]);
+		FD_SET(fd, &rfds);
+		FD_SET(fd, &efds);
+		if( fd > maxfd )
+			maxfd = fd;
+	}
+
+	if( timeout_ms < 0 ) {
+		tvp = NULL;
+	} else {
+		tv.tv_sec  = timeout_ms / 1000;
+		tv.tv_usec = (timeout_ms % 1000) * 1000;
+		tvp = &tv;
+	}
+
+	ret = select(maxfd + 1, &rfds, NULL, &efds, tvp);
+	if( ret < 0 )
+		return -1;
+	if( ret == 0 )
+		return 0;
+
+	dispatched = 0;
+	for( i = 0; i < group->count; i++ ) {
+		fd = monome_get_fd(group->monomes[i]);
+		if( FD_ISSET(fd, &efds) )
+			return -1;
+		if( FD_ISSET(fd, &rfds) ) {
+			ret = monome_event_handle_next(group->monomes[i]);
+			if( ret > 0 )
+				dispatched += ret;
+		}
+	}
+
+	return dispatched;
 }

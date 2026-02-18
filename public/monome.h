@@ -62,6 +62,7 @@ typedef enum {
 
 typedef struct monome monome_t; /* opaque data type */
 typedef struct monome_event monome_event_t;
+typedef struct monome_poll_group monome_poll_group_t;
 
 typedef void (*monome_event_callback_t)
 	(const monome_event_t *event, void *data);
@@ -111,6 +112,16 @@ int monome_event_next(monome_t *monome, monome_event_t *event_buf);
 int monome_event_handle_next(monome_t *monome);
 void monome_event_loop(monome_t *monome);
 int monome_get_fd(monome_t *monome);
+
+/**
+ * poll group (multi-device)
+ */
+monome_poll_group_t *monome_poll_group_new(void);
+void monome_poll_group_free(monome_poll_group_t *group);
+int monome_poll_group_add(monome_poll_group_t *group, monome_t *monome);
+int monome_poll_group_remove(monome_poll_group_t *group, monome_t *monome);
+int monome_poll_group_wait(monome_poll_group_t *group, int timeout_ms);
+void monome_poll_group_loop(monome_poll_group_t *group);
 
 /**
  * led grid commands
