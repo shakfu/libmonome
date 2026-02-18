@@ -383,6 +383,105 @@ int monome_platform_wait_for_input(monome_t *monome, uint_t msec) {
 	return result;
 }
 
+int monome_poll_group_wait(monome_poll_group_t *group, int timeout_ms) {
+	HANDLE handles[MAXIMUM_WAIT_OBJECTS];
+	DWORD event_masks[MAXIMUM_WAIT_OBJECTS];
+	DWORD old_comm_masks[MAXIMUM_WAIT_OBJECTS];
+	OVERLAPPED ovs[MAXIMUM_WAIT_OBJECTS];
+	HANDLE hres;
+	DWORD wait_result, wait_timeout;
+	unsigned int i;
+	int dispatched;
+
+	if( !group || !group->count )
+		return -1;
+
+	if( group->count > MAXIMUM_WAIT_OBJECTS ) {
+		fprintf(stderr, "monome_poll_group_wait(): too many devices (%u > %d)\n",
+				group->count, MAXIMUM_WAIT_OBJECTS);
+		return -1;
+	}
+
+	for( i = 0; i < group->count; i++ ) {
+		hres = (HANDLE) _get_osfhandle(group->monomes[i]->fd);
+
+		if( !GetCommMask(hres, &old_comm_masks[i]) ) {
+			fprintf(stderr, "monome_poll_group_wait(): failed to get comm mask (%ld)\n", GetLastError());
+			goto err_cleanup;
+		}
+
+		if( !SetCommMask(hres, EV_RXCHAR) ) {
+			fprintf(stderr, "monome_poll_group_wait(): failed to set comm mask (%ld)\n", GetLastError());
+			goto err_cleanup;
+		}
+
+		memset(&ovs[i], 0, sizeof(OVERLAPPED));
+		ovs[i].hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+		if( !ovs[i].hEvent ) {
+			fprintf(stderr, "monome_poll_group_wait(): could not allocate event (%ld)\n", GetLastError());
+			goto err_cleanup;
+		}
+
+		handles[i] = ovs[i].hEvent;
+
+		if( !WaitCommEvent(hres, &event_masks[i], &ovs[i]) ) {
+			if( GetLastError() != ERROR_IO_PENDING ) {
+				fprintf(stderr, "monome_poll_group_wait(): WaitCommEvent failed (%ld)\n", GetLastError());
+				i++;
+				goto err_cleanup;
+			}
+		}
+	}
+
+	wait_timeout = (timeout_ms < 0) ? INFINITE : (DWORD) timeout_ms;
+	wait_result = WaitForMultipleObjects(group->count, handles, FALSE, wait_timeout);
+
+	if( wait_result == WAIT_FAILED ) {
+		fprintf(stderr, "monome_poll_group_wait(): WaitForMultipleObjects failed (%ld)\n", GetLastError());
+		dispatched = -1;
+		goto cleanup;
+	}
+
+	if( wait_result == WAIT_TIMEOUT ) {
+		dispatched = 0;
+		goto cleanup;
+	}
+
+	dispatched = 0;
+	for( i = 0; i < group->count; i++ ) {
+		if( WaitForSingleObject(handles[i], 0) == WAIT_OBJECT_0 ) {
+			int ret = monome_event_handle_next(group->monomes[i]);
+			if( ret > 0 )
+				dispatched += ret;
+		}
+	}
+
+cleanup:
+	i = group->count;
+
+err_cleanup:
+	/* cleanup iterates backwards through devices 0..i-1. on success,
+	   i == group->count so all devices are cleaned up. on error during
+	   setup, i reflects how far we got: if WaitCommEvent fails for
+	   device i, i is incremented first so its event handle gets closed.
+	   if GetCommMask/SetCommMask/CreateEvent fails, i is not incremented,
+	   so only previously-initialized devices are cleaned up. */
+	while( i-- > 0 ) {
+		CloseHandle(ovs[i].hEvent);
+
+		hres = (HANDLE) _get_osfhandle(group->monomes[i]->fd);
+		SetCommMask(hres, old_comm_masks[i]);
+	}
+
+	return dispatched;
+}
+
+void monome_poll_group_loop(monome_poll_group_t *group) {
+	while( monome_poll_group_wait(group, -1) >= 0 )
+		;
+}
+
 void monome_event_loop(monome_t *monome) {
 	monome_callback_t *handler;
 	monome_event_t e;

@@ -3,6 +3,19 @@
 ## Unreleased
 
 ### Added
+- Comprehensive CTest suite covering pure-logic code paths without hardware.
+  Four test executables registered with CTest:
+  - `test_poll_group` -- poll group data structure operations (new/add/remove/free,
+    duplicate rejection, capacity growth, NULL argument handling)
+  - `test_rotation` -- coordinate transforms (identity, specific values, round-trip),
+    level map transforms, bit map transforms, rotspec flags, dimension swapping
+    under ROW_COL_SWAP
+  - `test_monobright` -- `reduce_levels_to_bitmask()` threshold behavior (boundary
+    values at 7/8, single-bit patterns, ascending/descending sequences)
+  - `test_core` -- rotation get/set with 2-bit masking, string getters, fd getter,
+    handler registration/unregistration, event grid extraction, REQUIRE macro
+    (NULL capability -> UNSUPPORTED), bounds checking (OUT_OF_RANGE), LED/ring/tilt
+    dispatch through mock function tables
 - Poll group API for multi-device event handling (`monome_poll_group_*`).
   The existing event API (`monome_event_loop`, `monome_event_handle_next`)
   operates on a single `monome_t`, which means applications using multiple

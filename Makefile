@@ -11,5 +11,8 @@ python:
 		cmake .. -DBUILD_PYTHON_EXTENSION=ON && \
 		cmake --build . --config Release
 
+test: build
+	@cd build && ctest --output-on-failure
+
 clean:
 	@rm -rf build

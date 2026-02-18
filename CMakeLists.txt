@@ -75,6 +75,32 @@ if(BUILD_PYTHON_EXTENSION)
     add_subdirectory(bindings/python)
 endif()
 
+enable_testing()
+
+add_executable(test_poll_group tests/test_poll_group.c)
+target_link_libraries(test_poll_group PRIVATE monome_static)
+target_include_directories(test_poll_group PRIVATE src/private)
+target_compile_definitions(test_poll_group PRIVATE EMBED_PROTOS)
+add_test(NAME poll_group COMMAND test_poll_group)
+
+add_executable(test_rotation tests/test_rotation.c)
+target_link_libraries(test_rotation PRIVATE monome_static)
+target_include_directories(test_rotation PRIVATE src/private)
+target_compile_definitions(test_rotation PRIVATE EMBED_PROTOS)
+add_test(NAME rotation COMMAND test_rotation)
+
+add_executable(test_monobright tests/test_monobright.c)
+target_link_libraries(test_monobright PRIVATE monome_static)
+target_include_directories(test_monobright PRIVATE src/private)
+target_compile_definitions(test_monobright PRIVATE EMBED_PROTOS)
+add_test(NAME monobright COMMAND test_monobright)
+
+add_executable(test_core tests/test_core.c)
+target_link_libraries(test_core PRIVATE monome_static)
+target_include_directories(test_core PRIVATE src/private)
+target_compile_definitions(test_core PRIVATE EMBED_PROTOS)
+add_test(NAME core COMMAND test_core)
+
 install(TARGETS monome_static monome EXPORT libmonomeConfig
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
